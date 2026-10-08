@@ -93,13 +93,34 @@ authRouter.get('/me', requireAuth, (req: AuthedRequest, res) => {
   res.json(req.user)
 })
 
+const ACCOUNT_FIELDS = ['name', 'email', 'phone', 'avatarUrl'] as const
+
 authRouter.patch('/me', requireAuth, (req: AuthedRequest, res) => {
   try {
+    const body = (req.body ?? {}) as Partial<User>
+    const patch: Partial<User> = {}
+    for (const key of ACCOUNT_FIELDS) {
+      if (key in body) patch[key] = body[key] as never
+    }
+
     const updated = db.users.update(
       (user) => user.id === req.user!.id,
-      (user) => ({ ...user, ...(req.body as Partial<User>) }),
+      (user) => ({ ...user, ...patch }),
     )
     if (!updated) throw new HttpError('Account not found', 404)
+
+    if ('avatarUrl' in patch) {
+      const photoUrl = typeof patch.avatarUrl === 'string' ? patch.avatarUrl : ''
+      db.profiles.update(
+        (profile) => profile.userId === updated.id,
+        (profile) => ({
+          ...profile,
+          personal: { ...profile.personal, photoUrl },
+          updatedAt: new Date().toISOString(),
+        }),
+      )
+    }
+
     res.json(updated)
   } catch (error) {
     sendError(res, error)
