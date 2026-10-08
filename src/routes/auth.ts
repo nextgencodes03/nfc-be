@@ -9,7 +9,10 @@ export const authRouter = Router()
 
 authRouter.post('/login', (req, res) => {
   try {
-    const { email, password } = req.body as LoginPayload
+    const { email, password } = (req.body ?? {}) as LoginPayload
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
+      throw new HttpError('Email and password are required', 400, 'invalid_payload')
+    }
     const user = db.users.find((candidate) => candidate.email.toLowerCase() === email.trim().toLowerCase())
     if (!user) throw new HttpError('No account found with that email', 404, 'user_not_found')
 
@@ -71,6 +74,13 @@ authRouter.post('/signup', (req, res) => {
 
 authRouter.post('/logout', (_req, res) => {
   res.status(204).end()
+})
+
+authRouter.get('/demo', (_req, res) => {
+  res.json([
+    { label: 'Customer', email: 'krishna@nexalabs.dev', password: DEMO_PASSWORD },
+    { label: 'Admin', email: 'admin@yourdomain.com', password: DEMO_PASSWORD },
+  ])
 })
 
 authRouter.post('/forgot-password', (req, res) => {
