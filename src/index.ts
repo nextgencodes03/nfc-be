@@ -1,7 +1,9 @@
+import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import { HttpError } from './http'
 import { optionalAuth } from './auth'
+import { connectDb, usingMongo } from './db'
 import { analyticsRouter, catalogRouter, customersRouter, supportRouter } from './routes/rest'
 import { authRouter } from './routes/auth'
 import { nfcRouter } from './routes/nfc'
@@ -25,7 +27,7 @@ app.use((req, _res, next) => {
 app.use(optionalAuth)
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'nfc-be', mock: true })
+  res.json({ ok: true, service: 'nfc-be', mongo: usingMongo, mock: !usingMongo })
 })
 
 app.use('/api/auth', authRouter)
@@ -45,6 +47,8 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   console.error(error)
   res.status(500).json({ message: 'Internal server error' })
 })
+
+await connectDb()
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`NFC-BE listening on http://127.0.0.1:${PORT}`)

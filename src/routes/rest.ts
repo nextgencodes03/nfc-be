@@ -5,16 +5,8 @@ import { plans } from '@/data/plans'
 import { templates } from '@/data/templates'
 import { uid } from '@/utils/id'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../auth'
-import { db } from '../db'
+import { db, recordVisit, visits } from '../db'
 import { HttpError, sendError } from '../http'
-
-interface VisitEvent {
-  profileId: string
-  source: VisitSource
-  at: string
-}
-
-const visits: VisitEvent[] = []
 
 function emptyAnalytics(profileId: string) {
   return {
@@ -117,7 +109,7 @@ analyticsRouter.get('/platform', requireAuth, requireAdmin, (_req, res) => {
 })
 
 analyticsRouter.get('/profiles/:profileId', requireAuth, (req, res) => {
-  res.json(mergeLiveVisits(req.params.profileId))
+  res.json(mergeLiveVisits(String(req.params.profileId)))
 })
 
 analyticsRouter.post('/visits', (req, res) => {
@@ -127,8 +119,7 @@ analyticsRouter.post('/visits', (req, res) => {
     res.status(204).end()
     return
   }
-  visits.unshift({ profileId, source, at: new Date().toISOString() })
-  if (visits.length > 400) visits.length = 400
+  recordVisit({ profileId, source, at: new Date().toISOString() })
   if (source === 'nfc') {
     db.cards.update(
       (card) => card.customerId === profile.userId && card.status === 'active',

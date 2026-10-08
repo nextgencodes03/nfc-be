@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { LoginPayload, SignUpPayload, User } from '@/types'
 import { issueToken, requireAuth, type AuthedRequest } from '../auth'
-import { db, DEMO_PASSWORD, passwords } from '../db'
+import { db, DEMO_PASSWORD, passwords, savePassword } from '../db'
 import { HttpError, sendError } from '../http'
 import { uid } from '@/utils/id'
 
@@ -46,7 +46,7 @@ authRouter.post('/signup', (req, res) => {
       createdAt: new Date().toISOString(),
     }
     db.users.insert(user)
-    passwords.set(user.id, payload.password)
+    savePassword(user.id, payload.password)
 
     if (order) {
       db.orders.update(
@@ -111,7 +111,7 @@ authRouter.post('/change-password', requireAuth, (req: AuthedRequest, res) => {
     const { current, next } = req.body as { current: string; next: string }
     const expected = passwords.get(req.user!.id) ?? DEMO_PASSWORD
     if (current !== expected) throw new HttpError('Current password is incorrect', 401)
-    passwords.set(req.user!.id, next)
+    savePassword(req.user!.id, next)
     res.status(204).end()
   } catch (error) {
     sendError(res, error)

@@ -1,12 +1,25 @@
 /**
- * In-memory document store seeded with the same mock data the UI used to keep locally.
- * Replace with PostgreSQL later without changing the route handlers.
+ * Document collection used by route handlers.
+ * Backed by MongoDB Atlas when MONGODB_URI is set; otherwise in-memory seed data.
  */
 
-export function collection<T>(seed: T[]) {
+export interface Collection<T> {
+  load(seed: T[]): Promise<void>
+  all(): T[]
+  set(next: T[]): void
+  insert(item: T): T
+  update(predicate: (item: T) => boolean, patch: (item: T) => T): T | undefined
+  find(predicate: (item: T) => boolean): T | undefined
+  filter(predicate: (item: T) => boolean): T[]
+}
+
+export function collection<T>(seed: T[]): Collection<T> {
   let items = [...seed]
 
   return {
+    async load(): Promise<void> {
+      items = [...seed]
+    },
     all(): T[] {
       return items
     },

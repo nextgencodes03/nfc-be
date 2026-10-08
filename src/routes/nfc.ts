@@ -18,7 +18,7 @@ nfcRouter.get('/mine', requireAuth, (req: AuthedRequest, res) => {
 
 nfcRouter.get('/:cardId', requireAuth, (req, res) => {
   try {
-    const card = db.cards.find((candidate) => candidate.cardId.toLowerCase() === req.params.cardId.toLowerCase())
+    const card = db.cards.find((candidate) => candidate.cardId.toLowerCase() === String(req.params.cardId).toLowerCase())
     if (!card) throw new HttpError('Card not found', 404)
     res.json(card)
   } catch (error) {
